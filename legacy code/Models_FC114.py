@@ -43,19 +43,22 @@ class Models():
         # Initializing the network class                
         self.networks = Networks(self.args)
         
+        # TODO LUCAS: É aqui que eu tenho que mexer!!!! DeepLab vai ser outro if e talvez mexer no decoder.  
         if self.args.method_type == 'Unet':             
             #Defining the classifiers
             self.logits_c , self.prediction_c, self.features_c = self.networks.build_Unet_Arch(self.data, name = "Unet_Encoder_Classifier")
             if self.args.training_type == 'domain_adaptation':
                 flip_feature = flip_gradient(self.features_c, self.L)
                 self.logits_d, self.prediction_d = self.networks.build_Unet_Decoder_Arch(flip_feature, name = 'Unet_Decoder_DR')
-            
+
         if self.args.phase == 'train':
             self.dataset_s = dataset[0]
             self.dataset_t = dataset[1]
             #Defining losses
             # Classifier loss, only for the source labeled samples
             temp = self.weighted_cross_entropy_c()
+
+            # Essa mask_c deixa de fora os pixels que eu não me importo. A rede vai gerar um resultado, mas eu não nao me importo com essas saidas
             self.classifier_loss =  tf.reduce_sum(self.mask_c * temp) / tf.reduce_sum(self.mask_c)
             # Here I need to thing a way to avoid the patches from the target domain using the same weights mask
             if self.args.training_type == 'classification':
@@ -65,12 +68,13 @@ class Models():
                self.total_loss = self.classifier_loss + self.domainregressor_loss
 
             # Defining the Optimizers
+            # TODO LUCAS: Testar o melhor otimizador e se vai precisar de learning_rate_decay ou não.
             # self.training_optimizer = tf.train.MomentumOptimizer(self.learning_rate, self.args.beta1).minimize(self.total_loss)
             self.training_optimizer = tf.train.AdamOptimizer(self.args.lr, self.args.beta1).minimize(self.total_loss)
             self.saver = tf.train.Saver(max_to_keep=5)
             self.sess=tf.Session()
             self.sess.run(tf.initialize_all_variables())
-                    
+
     
         elif self.args.phase == 'test':
             self.dataset = dataset                

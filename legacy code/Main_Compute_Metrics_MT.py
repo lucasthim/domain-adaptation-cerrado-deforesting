@@ -20,6 +20,9 @@ from Cerrado_Biome_MA import CERRADO_MA
 parser = argparse.ArgumentParser(description='')
 #Defining the meta-paramerts
 # Model
+
+# TODO LUCAS:Esse script calcula o multi threshold. gera um array com varios precisions e recalls para thresholds diferentes
+# Isso serve para calcular uma media e std
 parser.add_argument('--method_type', dest='method_type', type=str, default='DANN', help='method that will be used, could be used also (siamese_network)')
 parser.add_argument('--vertical_blocks', dest='vertical_blocks', type=int, default=10, help='number of blocks which will divide the image vertically')
 parser.add_argument('--horizontal_blocks', dest='horizontal_blocks', type=int, default=10, help='number of blocks which will divide the image horizontally')
