@@ -77,10 +77,10 @@ class Models():
 
     
         elif self.args.phase == 'test':
-            self.dataset = dataset                
+            self.dataset = dataset
             self.saver = tf.train.Saver(max_to_keep=5)
             self.sess=tf.Session()
-            self.sess.run(tf.initialize_all_variables())              
+            self.sess.run(tf.initialize_all_variables())
             print('[*]Loading the feature extractor and classifier trained models...')
             mod = self.load(self.args.trained_model_path)
             if mod:
@@ -95,7 +95,7 @@ class Models():
         self.loss = tf.reduce_sum(self.temp_weighted, 3) 
         return self.loss
     
-    def Learning_rate_decay(self):            
+    def Learning_rate_decay(self):
         lr = self.args.lr / (1. + 10 * self.p)**0.75
         return lr      
             
@@ -153,31 +153,31 @@ class Models():
             print(np.shape(corners_coordinates_tr_t))
             print(np.shape(corners_coordinates_vl_t))
         
-        # Balancing the number of samples between source and target domain
-        size_tr_s = corners_coordinates_tr_s.shape[0]
-        size_tr_t = corners_coordinates_tr_t.shape[0]
-        size_vl_s = corners_coordinates_vl_s.shape[0]
-        size_vl_t = corners_coordinates_vl_t.shape[0]
-                    
-        if size_tr_s < size_tr_t:
-            diff = size_tr_t - size_tr_s 
-            corners_coordinates_tr_s = np.concatenate((corners_coordinates_tr_s , corners_coordinates_tr_s[:diff,:]),axis=0)
-        if size_tr_t < size_tr_s:
-            diff = size_tr_s - size_tr_t
-            corners_coordinates_tr_t = np.concatenate((corners_coordinates_tr_t , corners_coordinates_tr_t[:diff,:]),axis=0)
+            # Balancing the number of samples between source and target domain
+            size_tr_s = corners_coordinates_tr_s.shape[0]
+            size_tr_t = corners_coordinates_tr_t.shape[0]
+            size_vl_s = corners_coordinates_vl_s.shape[0]
+            size_vl_t = corners_coordinates_vl_t.shape[0]
+                        
+            if size_tr_s < size_tr_t:
+                diff = size_tr_t - size_tr_s 
+                corners_coordinates_tr_s = np.concatenate((corners_coordinates_tr_s , corners_coordinates_tr_s[:diff,:]),axis=0)
+            if size_tr_t < size_tr_s:
+                diff = size_tr_s - size_tr_t
+                corners_coordinates_tr_t = np.concatenate((corners_coordinates_tr_t , corners_coordinates_tr_t[:diff,:]),axis=0)
+                
+            if size_vl_s < size_vl_t:
+                diff = size_vl_t - size_vl_s 
+                corners_coordinates_vl_s = np.concatenate((corners_coordinates_vl_s , corners_coordinates_vl_s[:diff,:]),axis=0)
+            if size_vl_t < size_vl_s:
+                diff = size_vl_s - size_vl_t
+                corners_coordinates_vl_t = np.concatenate((corners_coordinates_vl_t , corners_coordinates_vl_t[:diff,:]),axis=0)
             
-        if size_vl_s < size_vl_t:
-            diff = size_vl_t - size_vl_s 
-            corners_coordinates_vl_s = np.concatenate((corners_coordinates_vl_s , corners_coordinates_vl_s[:diff,:]),axis=0)
-        if size_vl_t < size_vl_s:
-            diff = size_vl_s - size_vl_t
-            corners_coordinates_vl_t = np.concatenate((corners_coordinates_vl_t , corners_coordinates_vl_t[:diff,:]),axis=0)
-        
-        print('Sets dimensions after balancing')
-        print('Source dimensions: ')
-        print(np.shape(corners_coordinates_tr_s))
-        print(np.shape(corners_coordinates_vl_s))
-        if self.args.training_type == 'domain_adaptation':
+            print('Sets dimensions after balancing')
+            print('Source dimensions: ')
+            print(np.shape(corners_coordinates_tr_s))
+            print(np.shape(corners_coordinates_vl_s))
+        # if self.args.training_type == 'domain_adaptation':
             print('Target dimension: ')
             print(np.shape(corners_coordinates_tr_t))
             print(np.shape(corners_coordinates_vl_t))
@@ -193,7 +193,7 @@ class Models():
             data.append(x_train_t)
         
         # Training configuration
-        if self.args.training_type == 'clasification':
+        if self.args.training_type == 'classification':
             # Domain indexs configuration
             corners_coordinates_tr = corners_coordinates_tr_s.copy()
             corners_coordinates_vl = corners_coordinates_vl_s.copy()

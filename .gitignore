@@ -128,5 +128,6 @@ dmypy.json
 # Pyre type checker
 .pyre/
 
-/code/Amazonia_Legal/
-/code/Cerrado_Biome/
+/Datasets/
+/Amazonia_Legal/
+/Cerrado_Biome/

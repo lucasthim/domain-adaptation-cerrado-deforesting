@@ -92,7 +92,7 @@ parser.add_argument('--source_reference_t2_name', dest='source_reference_t2_name
 parser.add_argument('--target_reference_t1_name', dest='target_reference_t1_name', type=str, default='', help='reference 1 name')
 parser.add_argument('--target_reference_t2_name', dest='target_reference_t2_name', type=str, default='', help='reference 2 name')
 #Dataset Main paths
-parser.add_argument('--dataset_main_path', dest='dataset_main_path', type=str, default='/media/lvc/Dados/PEDROWORK/Trabajo_Domain_Adaptation/Dataset/', help='Dataset main path')
+parser.add_argument('--dataset_main_path', dest='dataset_main_path', type=str, default='/code/Dataset/', help='Dataset main path')
 # #Architecture configuration
 # parser.add_argument('--FE_Architecture', dest='FE_Architecture', type=str, default='', help='Decide the architecture of the Feature Extractor(FE)')
 # parser.add_argument('--CL_Architecture', dest='CL_Architecture', type=str, default='', help='Decide the architecture of the Classifier(Cl)')
