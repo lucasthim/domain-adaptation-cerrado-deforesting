@@ -30,3 +30,7 @@
 14 [Vl loss: 0.121919, acc.: 96.60%, precission: 54.83%, recall: 59.86%, fscore: 53.20%]
 15 [Tr loss: 0.000015, acc.: 99.98%, precission: 99.72%, recall: 100.00%, fscore: 99.86%]
 15 [Vl loss: 0.164847, acc.: 96.92%, precission: 60.16%, recall: 55.72%, fscore: 53.27%]
+16 [Tr loss: 0.000035, acc.: 99.96%, precission: 99.37%, recall: 99.99%, fscore: 99.68%]
+16 [Vl loss: 0.175875, acc.: 96.89%, precission: 61.04%, recall: 52.86%, fscore: 51.75%]
+17 [Tr loss: 0.000036, acc.: 99.96%, precission: 99.36%, recall: 99.99%, fscore: 99.67%]
+17 [Vl loss: 0.137536, acc.: 97.17%, precission: 62.15%, recall: 57.92%, fscore: 55.20%]

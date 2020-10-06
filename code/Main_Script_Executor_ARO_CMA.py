@@ -6,10 +6,11 @@ os.environ["CUDA_VISIBLE_DEVICES"] = "2"
 warnings.filterwarnings("ignore")
 Schedule = []
 
-Schedule.append("python Main_Train_FC114.py --method_type Unet --epochs 100 --batch_size 32 --lr 0.0001 " 
+# Mudei o overlap para 0.2 e as epochs para 2
+Schedule.append("python Main_Train_FC114.py --method_type DeepLab --epochs 2 --batch_size 32 --lr 0.0001 " 
                 "--beta1 0.9 --data_augmentation True --source_vertical_blocks 10 --source_horizontal_blocks 10 --target_vertical_blocks 3 --target_horizontal_blocks 5 "
                 "--fixed_tiles True --defined_before False --image_channels 7 --patches_dimension 128 "
-                "--overlap_s 0.95 --overlap_t 0.95 --compute_ndvi False --balanced_tr True "
+                "--overlap_s 0.2 --overlap_t 0.95 --compute_ndvi False --balanced_tr True "
                 "--buffer True --source_buffer_dimension_out 4 --source_buffer_dimension_in 2 --target_buffer_dimension_out 2 --target_buffer_dimension_in 0 --porcent_of_last_reference_in_actual_reference 100 "
                 "--porcent_of_positive_pixels_in_actual_reference_s 2 --porcent_of_positive_pixels_in_actual_reference_s 0 "
                 "--num_classes 2 --phase train --training_type classification --runs 1 " 

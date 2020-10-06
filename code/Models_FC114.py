@@ -21,7 +21,7 @@ class Models():
     def __init__(self, args, dataset):
         self.args = args
         #Initializing the tensordash model to track the behaviour of the model
-        #self.histories = Customdash(ModelName = 'LVC02_model_i', email = 'pedrosoto423@gmail.com', password = 'Bad87*be@tles63')
+        #self.histories = Customdash(ModelName = 'LVC02_model_i', email = 'pedrosoto423@gmail.com', password = '')
         # Initializing the placeholders
         #Changing  the seed  in any run
         tf.set_random_seed(int(time.time()))
@@ -40,16 +40,23 @@ class Models():
         self.class_weights = tf.placeholder(tf.float32, [None, self.args.patches_dimension, self.args.patches_dimension, self.args.num_classes], name="class_weights")
         self.L = tf.placeholder(tf.float32, [], name="L" )
         
-        # Initializing the network class                
+        # Initializing the network class
         self.networks = Networks(self.args)
         
         # TODO LUCAS: É aqui que eu tenho que mexer!!!! DeepLab vai ser outro if e talvez mexer no decoder.  
-        if self.args.method_type == 'Unet':             
+        if self.args.method_type == 'Unet':
             #Defining the classifiers
             self.logits_c , self.prediction_c, self.features_c = self.networks.build_Unet_Arch(self.data, name = "Unet_Encoder_Classifier")
             if self.args.training_type == 'domain_adaptation':
                 flip_feature = flip_gradient(self.features_c, self.L)
                 self.logits_d, self.prediction_d = self.networks.build_Unet_Decoder_Arch(flip_feature, name = 'Unet_Decoder_DR')
+        # TODO:Deep lab entra aqui
+        elif self.args.method_type == 'DeepLab':
+            #Defining the classifiers
+            self.logits_c , self.prediction_c, self.features_c = self.networks.build_DeepLab_Arch(self.data,is_training = True, name = "DeepLab_Encoder_Classifier")
+            if self.args.training_type == 'domain_adaptation':
+                flip_feature = flip_gradient(self.features_c, self.L)
+                self.logits_d, self.prediction_d = self.networks.build_DeepLab_Decoder_Arch(flip_feature, name = 'DeepLab_Decoder_DR')
 
         if self.args.phase == 'train':
             self.dataset_s = dataset[0]
@@ -60,6 +67,7 @@ class Models():
 
             # Essa mask_c deixa de fora os pixels que eu não me importo. A rede vai gerar um resultado, mas eu não nao me importo com essas saidas
             self.classifier_loss =  tf.reduce_sum(self.mask_c * temp) / tf.reduce_sum(self.mask_c)
+            # Perguntar essa frase de baixo pro Pedro
             # Here I need to thing a way to avoid the patches from the target domain using the same weights mask
             if self.args.training_type == 'classification':
                 self.total_loss = self.classifier_loss
@@ -103,6 +111,7 @@ class Models():
         
         best_f1score = 0
         pat = 0
+        #TODO Lucas: Perguntar ao Pedro se esse class_weights está correto 
         class_weights = []
         class_weights.append(0.4)
         class_weights.append(2)
@@ -420,11 +429,11 @@ class Models():
             
             if self.args.training_type == 'domain_adaptation':
                 loss_dr_tr = loss_dr_tr/batch_counter_cl
-                print ("%d [Tr loss: %f, acc.: %.2f%%, precission: %.2f%%, recall: %.2f%%, fscore: %.2f%%, Dr loss: %f]" % (e, loss_cl_tr[0,0], accuracy_tr, precission_tr, recall_tr, f1_score_tr, loss_dr_tr[0,0]))
-                f.write("%d [Tr loss: %f, acc.: %.2f%%, precission: %.2f%%, recall: %.2f%%, fscore: %.2f%%, Dr loss: %f]\n" % (e, loss_cl_tr[0,0], accuracy_tr, precission_tr, recall_tr, f1_score_tr, loss_dr_tr[0,0]))
+                print ("%d [Training loss: %f, acc.: %.2f%%, precission: %.2f%%, recall: %.2f%%, f1: %.2f%%, Dr loss: %f]" % (e, loss_cl_tr[0,0], accuracy_tr, precission_tr, recall_tr, f1_score_tr, loss_dr_tr[0,0]))
+                f.write("%d [Training loss: %f, acc.: %.2f%%, precission: %.2f%%, recall: %.2f%%, f1: %.2f%%, Dr loss: %f]\n" % (e, loss_cl_tr[0,0], accuracy_tr, precission_tr, recall_tr, f1_score_tr, loss_dr_tr[0,0]))
             else:
-                print ("%d [Tr loss: %f, acc.: %.2f%%, precission: %.2f%%, recall: %.2f%%, fscore: %.2f%%]" % (e, loss_cl_tr[0,0], accuracy_tr, precission_tr, recall_tr, f1_score_tr))
-                f.write("%d [Tr loss: %f, acc.: %.2f%%, precission: %.2f%%, recall: %.2f%%, fscore: %.2f%%]\n" % (e, loss_cl_tr[0,0], accuracy_tr, precission_tr, recall_tr, f1_score_tr))
+                print ("%d [Training loss: %f, acc.: %.2f%%, precission: %.2f%%, recall: %.2f%%, f1: %.2f%%]" % (e, loss_cl_tr[0,0], accuracy_tr, precission_tr, recall_tr, f1_score_tr))
+                f.write("%d [Training loss: %f, acc.: %.2f%%, precission: %.2f%%, recall: %.2f%%, f1: %.2f%%]\n" % (e, loss_cl_tr[0,0], accuracy_tr, precission_tr, recall_tr, f1_score_tr))
             
             #Computing the validation loss
             print('[*]Computing the validation loss...')
@@ -568,21 +577,22 @@ class Models():
             precission_vl = precission_vl/(batch_counter_cl)
             if self.args.training_type == 'domain_adaptation':
                 loss_dr_vl = loss_dr_vl/batch_counter_cl
-                print ("%d [Vl loss: %f, acc.: %.2f%%,  precission: %.2f%%, recall: %.2f%%, fscore: %.2f%%, DrV loss: %f]" % (e, loss_cl_vl[0,0], accuracy_vl, precission_vl, recall_vl, f1_score_vl, loss_dr_vl[0 , 0]))
-                f.write("%d [Vl loss: %f, acc.: %.2f%%, precission: %.2f%%, recall: %.2f%%, fscore: %.2f%%, DrV loss: %f]\n" % (e, loss_cl_vl[0,0], accuracy_vl, precission_vl, recall_vl, f1_score_vl, loss_dr_vl[0 , 0]))
+                print ("%d [Validation loss: %f, acc.: %.2f%%,  precission: %.2f%%, recall: %.2f%%, f1: %.2f%%, DrV loss: %f]" % (e, loss_cl_vl[0,0], accuracy_vl, precission_vl, recall_vl, f1_score_vl, loss_dr_vl[0 , 0]))
+                f.write("%d [Validation loss: %f, acc.: %.2f%%, precission: %.2f%%, recall: %.2f%%, f1: %.2f%%, DrV loss: %f]\n" % (e, loss_cl_vl[0,0], accuracy_vl, precission_vl, recall_vl, f1_score_vl, loss_dr_vl[0 , 0]))
             else:  
-                print ("%d [Vl loss: %f, acc.: %.2f%%,  precission: %.2f%%, recall: %.2f%%, fscore: %.2f%%]" % (e, loss_cl_vl[0,0], accuracy_vl, precission_vl, recall_vl, f1_score_vl))
-                f.write("%d [Vl loss: %f, acc.: %.2f%%, precission: %.2f%%, recall: %.2f%%, fscore: %.2f%%]\n" % (e, loss_cl_vl[0,0], accuracy_vl, precission_vl, recall_vl, f1_score_vl))
+                print ("%d [Validation loss: %f, acc.: %.2f%%,  precission: %.2f%%, recall: %.2f%%, f1: %.2f%%]" % (e, loss_cl_vl[0,0], accuracy_vl, precission_vl, recall_vl, f1_score_vl))
+                f.write("%d [Validation loss: %f, acc.: %.2f%%, precission: %.2f%%, recall: %.2f%%, f1: %.2f%%]\n" % (e, loss_cl_vl[0,0], accuracy_vl, precission_vl, recall_vl, f1_score_vl))
             
             f.close()
             
             if self.args.training_type == 'domain_adaptation':
+                # TODO: Save model for domain adaptation
                 print('Code for saving model will be implemented soon!')
             else:
                 if best_f1score < f1_score_vl:
                     best_f1score = f1_score_vl
                     pat = 0
-                    
+                    print('[!] Best Validation F1 score: %.2f%%',best_f1score)
                     print('[!]Saving best model ...')                    
                     self.save(self.args.save_checkpoint_path, e)                
                 else:
@@ -638,6 +648,8 @@ class Models():
         np.save(self.args.save_results_dir + 'hit_map', hit_map)
     
     def save(self, checkpoint_dir, epoch):
+
+        # TODO: Implement if else for saving DeepLab or Unet
         model_name = "Unet.model"
 
         self.saver.save(self.sess,

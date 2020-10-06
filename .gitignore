@@ -131,3 +131,6 @@ dmypy.json
 /Datasets/
 /Amazonia_Legal/
 /Cerrado_Biome/
+/code/resnetv2_101/resnet_v2_101.ckpt
+/code/resnetv2_101/eval.graph
+/code/resnetv2_101/train.graph
