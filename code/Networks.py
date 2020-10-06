@@ -99,6 +99,7 @@ class Networks():
         The model function that takes in `inputs` and `is_training` and
         returns the output tensor of the DeepLab v3 model.
         """
+
         print('---------------------------------')
         print('Initializing DeepLab Architecture')
         print('---------------------------------')
@@ -135,7 +136,7 @@ class Networks():
                 exclude=exclude)
             # print('Variables to restore:')
             # print({v.name.split(':')[0]: v for v in variables_to_restore})
-            tf.train.init_from_checkpoint(pre_trained_model,
+            tf.train.init_from_checkpoint("./resnet_v2_101/resnet_v2_101.ckpt",
                                             {v.name.split(':')[0]: v for v in variables_to_restore})
             print("Loading Complete!")
             print('---------------------------------')
@@ -171,10 +172,7 @@ class Networks():
                             net, inputs_size, name='upsample_2')
         # TODO: output logits from decoder
         prediction = tf.nn.softmax(logits, name = name + '_softmax')
-        return prediction,logits,encoder_output
-        # return logits
-
-        # return model
+        return logits, prediction, encoder_output
 
     def build_DeepLab_Decoder_Arch(self, input_data, name="DeepLab_Decoder_Arch"):
         pass
