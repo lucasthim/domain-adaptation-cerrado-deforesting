@@ -5,11 +5,11 @@ from __future__ import print_function
 import os
 import numpy as np
 import tensorflow as tf
-from tensorflow.contrib.slim.nets import resnet_v2
 from tensorflow.contrib import layers as layers_lib
 from tensorflow.contrib.framework.python.ops import arg_scope
 from tensorflow.contrib.layers.python.layers import layers
 
+from tensorflow.contrib.slim.nets import resnet_v2
 
 class Networks():
     def __init__(self, args):
@@ -79,104 +79,6 @@ class Networks():
 
             return logits, prediction
 
-    def build_DeepLab_Arch(self, inputs, is_training = False, name = "DeepLab_Arch", output_stride = 8, base_architecture='resnet_v2_101', 
-                        pre_trained_model = './resnet_v2_101/resnet_v2_101.ckpt', batch_norm_decay = 0.9997, data_format='channels_last'):
-        """Generator for DeepLab v3 plus models.
-
-        Args:
-        num_classes: The number of possible classes for image classification.
-        output_stride: The ResNet unit's stride. Determines the rates for atrous convolution.
-            the rates are (6, 12, 18) when the stride is 16, and doubled when 8.
-        base_architecture: The architecture of base Resnet building block.
-        pre_trained_model: The path to the directory that contains pre-trained models.
-        batch_norm_decay: The moving average decay when estimating layer activation
-            statistics in batch normalization.
-        data_format: The input format ('channels_last', 'channels_first', or None).
-            If set to None, the format is dependent on whether a GPU is available.
-            Only 'channels_last' is supported currently.
-
-        Returns:
-        The model function that takes in `inputs` and `is_training` and
-        returns the output tensor of the DeepLab v3 model.
-        """
-
-        print('---------------------------------')
-        print('Initializing DeepLab Architecture')
-        print('---------------------------------')
-        print('Input data shape:',inputs.shape)
-        if data_format == 'channels_first':
-            # Convert the inputs from channels_last (NHWC) to channels_first (NCHW).
-            # This provides a large performance boost on GPU. See
-            # https://www.tensorflow.org/performance/performance_guide#data_formats
-            inputs = tf.transpose(inputs, [0, 3, 1, 2])
-
-        if base_architecture not in ['resnet_v2_50', 'resnet_v2_101']:
-            raise ValueError(
-                "'base_architrecture' must be either 'resnet_v2_50' or 'resnet_v2_101'.")
-
-        if base_architecture == 'resnet_v2_50':
-            base_model = resnet_v2.resnet_v2_50
-        else:
-            base_model = resnet_v2.resnet_v2_101
-
-        tf.logging.info('net shape: {}'.format(inputs.shape))
-        # Resnet as Encoder
-        with tf.contrib.slim.arg_scope(resnet_v2.resnet_arg_scope(batch_norm_decay=batch_norm_decay)):
-            logits, end_points = base_model(inputs,
-                                            num_classes=None,
-                                            is_training=is_training,
-                                            global_pool=False,
-                                            output_stride=output_stride)
-
-        if is_training:
-            print('---------------------------------')
-            print("Loading Pretrained ResNet V2 101")
-            exclude = [base_architecture + '/logits', 'global_step']
-            variables_to_restore = tf.contrib.slim.get_variables_to_restore(
-                exclude=exclude)
-            # print('Variables to restore:')
-            # print({v.name.split(':')[0]: v for v in variables_to_restore})
-            tf.train.init_from_checkpoint("./resnet_v2_101/resnet_v2_101.ckpt",
-                                            {v.name.split(':')[0]: v for v in variables_to_restore})
-            print("Loading Complete!")
-            print('---------------------------------')
-
-        inputs_size = tf.shape(inputs)[1:3]
-        net = end_points[base_architecture + '/block4']
-        encoder_output = atrous_spatial_pyramid_pooling(
-            net, output_stride, batch_norm_decay, is_training)
-
-        with tf.variable_scope("decoder"):
-            with tf.contrib.slim.arg_scope(resnet_v2.resnet_arg_scope(batch_norm_decay=batch_norm_decay)):
-                with arg_scope([layers.batch_norm], is_training=is_training):
-                    with tf.variable_scope("low_level_features"):
-                        low_level_features = end_points[base_architecture +
-                                                        '/block1/unit_3/bottleneck_v2/conv1']
-                        low_level_features = layers_lib.conv2d(low_level_features, 48,
-                                                                [1, 1], stride=1, scope='conv_1x1')
-                        low_level_features_size = tf.shape(
-                            low_level_features)[1:3]
-
-                    with tf.variable_scope("upsampling_logits"):
-                        net = tf.image.resize_bilinear(
-                            encoder_output, low_level_features_size, name='upsample_1')
-                        net = tf.concat(
-                            [net, low_level_features], axis=3, name='concat')
-                        net = layers_lib.conv2d(
-                            net, 256, [3, 3], stride=1, scope='conv_3x3_1')
-                        net = layers_lib.conv2d(
-                            net, 256, [3, 3], stride=1, scope='conv_3x3_2')
-                        net = layers_lib.conv2d(net, self.args.num_classes, [
-                                                1, 1], activation_fn=None, normalizer_fn=None, scope='conv_1x1')
-                        logits = tf.image.resize_bilinear(
-                            net, inputs_size, name='upsample_2')
-        # TODO: output logits from decoder
-        prediction = tf.nn.softmax(logits, name = name + '_softmax')
-        return logits, prediction, encoder_output
-
-    def build_DeepLab_Decoder_Arch(self, input_data, name="DeepLab_Decoder_Arch"):
-        pass
-
     def general_conv2d(self, input_data, filters=64,  kernel_size=7, stride=1, stddev=0.02, activation_function="relu", padding="VALID", do_norm=True, relu_factor=0, name="conv2d"):
         with tf.variable_scope(name):
             conv = tf.layers.conv2d(
@@ -210,6 +112,104 @@ class Networks():
                 deconv = tf.nn.elu(deconv, name='elu')
 
             return deconv
+
+class DeepLabV3PlusNetwork(Networks):
+
+    def __init__(self, args):
+        super(DeepLabV3PlusNetwork, self).__init__(args)
+
+    def build_DeepLab_Arch(self, inputs, is_training = False, name = "DeepLab_Arch", 
+                        output_stride = 8, base_architecture='resnet_v2_50', 
+                        pre_trained_model = None, batch_norm_decay = 0.9997, data_format='channels_last'):
+        """Generator for DeepLab v3 plus models.
+
+        Args:
+        num_classes: The number of possible classes for image classification.
+        output_stride: The ResNet unit's stride. Determines the rates for atrous convolution.
+            the rates are (6, 12, 18) when the stride is 16, and doubled when 8.
+        base_architecture: The architecture of base Resnet building block.
+        pre_trained_model: The path to the directory that contains pre-trained models.
+        batch_norm_decay: The moving average decay when estimating layer activation
+            statistics in batch normalization.
+        data_format: The input format ('channels_last', 'channels_first', or None).
+            If set to None, the format is dependent on whether a GPU is available.
+            Only 'channels_last' is supported currently.
+
+        Returns:
+        The model function that takes in `inputs` and `is_training` and
+        returns the output tensor of the DeepLab v3 model.
+        """
+
+        print('---------------------------------')
+        print('Initializing DeepLab Architecture')
+        print('---------------------------------')
+        print('Input data shape:',inputs.shape)
+
+        if data_format == 'channels_first':
+            # Convert the inputs from channels_last (NHWC) to channels_first (NCHW).
+            # This provides a large performance boost on GPU. See
+            # https://www.tensorflow.org/performance/performance_guide#data_formats
+            inputs = tf.transpose(inputs, [0, 3, 1, 2])
+
+        if base_architecture not in ['resnet_v2_50', 'resnet_v2_101']:
+            raise ValueError(
+                "'base_architrecture' must be either 'resnet_v2_50' or 'resnet_v2_101'.")
+
+        if base_architecture == 'resnet_v2_50':
+            base_model = resnet_v2.resnet_v2_50
+        elif base_architecture == 'resnet_v2_101':
+            base_model = resnet_v2.resnet_v2_101
+
+        print('Initializing ResNet as Encoder...')
+        # Resnet as Encoder
+        with tf.contrib.slim.arg_scope(resnet_v2.resnet_arg_scope(batch_norm_decay=batch_norm_decay)):
+            logits, end_points = base_model(inputs,
+                                            num_classes=None,
+                                            is_training=is_training,
+                                            global_pool=False,
+                                            output_stride=output_stride)
+
+        print('Loading Atrous Convolution layer...')
+        inputs_size = tf.shape(inputs)[1:3]
+        net = end_points[base_architecture + '/block4']
+        encoder_output = self.atrous_spatial_pyramid_pooling(
+            net, output_stride, batch_norm_decay, is_training)
+
+        print('Initializing Decoder...')
+
+        # Building DeepLab Decoder
+        with tf.variable_scope("decoder"):
+            with tf.contrib.slim.arg_scope(resnet_v2.resnet_arg_scope(batch_norm_decay=batch_norm_decay)):
+                with arg_scope([layers.batch_norm], is_training=is_training):
+                    with tf.variable_scope("low_level_features"):
+                        low_level_features = end_points[base_architecture +
+                                                        '/block1/unit_3/bottleneck_v2/conv1']
+                        low_level_features = layers_lib.conv2d(low_level_features, 48,
+                                                                [1, 1], stride=1, scope='conv_1x1')
+                        low_level_features_size = tf.shape(
+                            low_level_features)[1:3]
+
+                    with tf.variable_scope("upsampling_logits"):
+                        net = tf.image.resize_bilinear(
+                            encoder_output, low_level_features_size, name='upsample_1')
+                        net = tf.concat(
+                            [net, low_level_features], axis=3, name='concat')
+                        net = layers_lib.conv2d(
+                            net, 256, [3, 3], stride=1, scope='conv_3x3_1')
+                        net = layers_lib.conv2d(
+                            net, 256, [3, 3], stride=1, scope='conv_3x3_2')
+                        net = layers_lib.conv2d(net, self.args.num_classes, [
+                                                1, 1], activation_fn=None, normalizer_fn=None, scope='conv_1x1')
+                        logits = tf.image.resize_bilinear(
+                            net, inputs_size, name='upsample_2')
+        prediction = tf.nn.softmax(logits, name = name + '_softmax')
+
+        print('DeeplabV3+ successfully loaded!')
+        print('-----------------------------------')
+        return logits, prediction, encoder_output
+
+    def build_DeepLab_Discriminator_For_DA(self,flip_feature):
+        pass
 
     def atrous_spatial_pyramid_pooling(self, inputs, output_stride, batch_norm_decay, is_training, depth=256):
         """Atrous Spatial Pyramid Pooling.
@@ -266,3 +266,100 @@ class Networks():
                         net, depth, [1, 1], stride=1, scope='conv_1x1_concat')
 
                     return net
+
+    # Legacy code using pre-trained Resnet 101
+    # def build_DeepLab_Arch(self, inputs, is_training = False, name = "DeepLab_Arch", output_stride = 8, base_architecture='resnet_v2_101', 
+    #                         pre_trained_model = './resnet_v2_101/resnet_v2_101.ckpt', batch_norm_decay = 0.9997, data_format='channels_last'):
+    #         """Generator for DeepLab v3 plus models.
+
+    #         Args:
+    #         num_classes: The number of possible classes for image classification.
+    #         output_stride: The ResNet unit's stride. Determines the rates for atrous convolution.
+    #             the rates are (6, 12, 18) when the stride is 16, and doubled when 8.
+    #         base_architecture: The architecture of base Resnet building block.
+    #         pre_trained_model: The path to the directory that contains pre-trained models.
+    #         batch_norm_decay: The moving average decay when estimating layer activation
+    #             statistics in batch normalization.
+    #         data_format: The input format ('channels_last', 'channels_first', or None).
+    #             If set to None, the format is dependent on whether a GPU is available.
+    #             Only 'channels_last' is supported currently.
+
+    #         Returns:
+    #         The model function that takes in `inputs` and `is_training` and
+    #         returns the output tensor of the DeepLab v3 model.
+    #         """
+
+    #         print('---------------------------------')
+    #         print('Initializing DeepLab Architecture')
+    #         print('---------------------------------')
+    #         print('Input data shape:',inputs.shape)
+    #         if data_format == 'channels_first':
+    #             # Convert the inputs from channels_last (NHWC) to channels_first (NCHW).
+    #             # This provides a large performance boost on GPU. See
+    #             # https://www.tensorflow.org/performance/performance_guide#data_formats
+    #             inputs = tf.transpose(inputs, [0, 3, 1, 2])
+
+    #         if base_architecture not in ['resnet_v2_50', 'resnet_v2_101']:
+    #             raise ValueError(
+    #                 "'base_architrecture' must be either 'resnet_v2_50' or 'resnet_v2_101'.")
+
+    #         if base_architecture == 'resnet_v2_50':
+    #             base_model = resnet_v2.resnet_v2_50
+    #         else:
+    #             base_model = resnet_v2.resnet_v2_101
+
+    #         # tf.logging.info('net shape: {}'.format(inputs.shape))
+    #         # Resnet as Encoder
+    #         with tf.contrib.slim.arg_scope(resnet_v2.resnet_arg_scope(batch_norm_decay=batch_norm_decay)):
+    #             logits, end_points = base_model(inputs,
+    #                                             num_classes=None,
+    #                                             is_training=is_training,
+    #                                             global_pool=False,
+    #                                             output_stride=output_stride)
+
+    #         if is_training:
+    #             print('---------------------------------')
+    #             print("Loading Pretrained ResNet V2 101")
+    #             exclude = [base_architecture + '/logits', 'global_step']
+    #             variables_to_restore = tf.contrib.slim.get_variables_to_restore(
+    #                 exclude=exclude)
+    #             # print('Variables to restore:')
+    #             # print({v.name.split(':')[0]: v for v in variables_to_restore})
+    #             tf.train.init_from_checkpoint("./resnet_v2_101/resnet_v2_101.ckpt",
+    #                                             {v.name.split(':')[0]: v for v in variables_to_restore})
+    #             print("Loading Complete!")
+    #             print('---------------------------------')
+
+    #         inputs_size = tf.shape(inputs)[1:3]
+    #         net = end_points[base_architecture + '/block4']
+    #         encoder_output = atrous_spatial_pyramid_pooling(
+    #             net, output_stride, batch_norm_decay, is_training)
+
+    #         with tf.variable_scope("decoder"):
+    #             with tf.contrib.slim.arg_scope(resnet_v2.resnet_arg_scope(batch_norm_decay=batch_norm_decay)):
+    #                 with arg_scope([layers.batch_norm], is_training=is_training):
+    #                     with tf.variable_scope("low_level_features"):
+    #                         low_level_features = end_points[base_architecture +
+    #                                                         '/block1/unit_3/bottleneck_v2/conv1']
+    #                         low_level_features = layers_lib.conv2d(low_level_features, 48,
+    #                                                                 [1, 1], stride=1, scope='conv_1x1')
+    #                         low_level_features_size = tf.shape(
+    #                             low_level_features)[1:3]
+
+    #                     with tf.variable_scope("upsampling_logits"):
+    #                         net = tf.image.resize_bilinear(
+    #                             encoder_output, low_level_features_size, name='upsample_1')
+    #                         net = tf.concat(
+    #                             [net, low_level_features], axis=3, name='concat')
+    #                         net = layers_lib.conv2d(
+    #                             net, 256, [3, 3], stride=1, scope='conv_3x3_1')
+    #                         net = layers_lib.conv2d(
+    #                             net, 256, [3, 3], stride=1, scope='conv_3x3_2')
+    #                         net = layers_lib.conv2d(net, self.args.num_classes, [
+    #                                                 1, 1], activation_fn=None, normalizer_fn=None, scope='conv_1x1')
+    #                         logits = tf.image.resize_bilinear(
+    #                             net, inputs_size, name='upsample_2')
+    #         # TODO: output logits from decoder
+    #         prediction = tf.nn.softmax(logits, name = name + '_softmax')
+    #         return logits, prediction, encoder_output
+

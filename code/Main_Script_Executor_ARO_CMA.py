@@ -1,13 +1,13 @@
 import os
 import warnings
 
-os.environ["CUDA_VISIBLE_DEVICES"] = "2" 
+os.environ["CUDA_VISIBLE_DEVICES"] = "1" 
 
 warnings.filterwarnings("ignore")
 Schedule = []
 
 # Mudei o overlap para 0.2 e as epochs para 2
-Schedule.append("python Main_Train_FC114.py --method_type DeepLab --epochs 2 --batch_size 32 --lr 0.0001 " 
+Schedule.append("python Main_Train_FC114.py --method_type DeepLab --epochs 20 --batch_size 32 --lr 0.0001 " 
                 "--beta1 0.9 --data_augmentation True --source_vertical_blocks 10 --source_horizontal_blocks 10 --target_vertical_blocks 3 --target_horizontal_blocks 5 "
                 "--fixed_tiles True --defined_before False --image_channels 7 --patches_dimension 128 "
                 "--overlap_s 0.2 --overlap_t 0.95 --compute_ndvi False --balanced_tr True "

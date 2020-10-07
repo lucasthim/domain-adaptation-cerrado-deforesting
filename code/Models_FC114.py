@@ -52,11 +52,18 @@ class Models():
                 self.logits_d, self.prediction_d = self.networks.build_Unet_Decoder_Arch(flip_feature, name = 'Unet_Decoder_DR')
         # TODO:Deep lab entra aqui
         elif self.args.method_type == 'DeepLab':
+            deeplab_networks = DeepLabV3PlusNetwork(self.args)
+
             #Defining the classifiers
-            self.logits_c , self.prediction_c, self.features_c = self.networks.build_DeepLab_Arch(self.data,is_training = True, name = "DeepLab_Encoder_Classifier")
+            self.logits_c , self.prediction_c, self.features_c = deeplab_networks.build_DeepLab_Arch(
+                                                                                inputs = self.data,
+                                                                                is_training = True, 
+                                                                                output_stride = 16,
+                                                                                base_architecture = 'resnet_v2_50',
+                                                                                name = "DeepLab_Encoder_Classifier")
             if self.args.training_type == 'domain_adaptation':
                 flip_feature = flip_gradient(self.features_c, self.L)
-                self.logits_d, self.prediction_d = self.networks.build_DeepLab_Decoder_Arch(flip_feature, name = 'DeepLab_Decoder_DR')
+                self.logits_d, self.prediction_d = deeplab_networks.build_DeepLab_Discriminator_For_DA(flip_feature, name = 'DeepLab_Decoder_DR')
 
         if self.args.phase == 'train':
             self.dataset_s = dataset[0]

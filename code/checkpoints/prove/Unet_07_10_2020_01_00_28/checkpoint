@@ -1,0 +1,3 @@
+model_checkpoint_path: "Unet.model-1"
+all_model_checkpoint_paths: "Unet.model-0"
+all_model_checkpoint_paths: "Unet.model-1"
