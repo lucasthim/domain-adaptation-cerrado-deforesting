@@ -110,18 +110,18 @@ def Main():
     if args.save_result_text:
         # Open a file in order to save the training history
         f = open(args.results_dir + "Results.txt","a")
-        if counter == 0:
-            ACCURACY_ = []  
-            FSCORE_ = []
-            RECALL_ = []
-            PRECISION_ = [] 
-            ALERT_AREA_ = []  
+    #   if counter == 0:     #TROCADO DE COUNTER ==0 PARA COUNER == 1 POIS O INCREMENTO ACONTECE ANTES (gabriel)
+        ACCURACY_ = []  
+        FSCORE_ = []
+        RECALL_ = []
+        PRECISION_ = [] 
+        ALERT_AREA_ = []  
             
     ACCURACY, FSCORE, RECALL, PRECISION, CONFUSION_MATRIX, ALERT_AREA = Metrics_For_Test_M(Avg_hit_map,
                                                                                         dataset.references[0], dataset.references[1],
                                                                                         dataset.Train_tiles, dataset.Valid_tiles, dataset.Undesired_tiles,
                                                                                         args)
-                
+    
     if args.save_result_text:
         
         ACCURACY_.append(ACCURACY[0,0])
@@ -129,14 +129,16 @@ def Main():
         RECALL_.append(RECALL[0,0])
         PRECISION_.append(PRECISION[0,0])
         ALERT_AREA_.append(ALERT_AREA[0,0])
+        
+        print("printando ACCURACY_: "+ str(ACCURACY_))
+        
         #histories.sendLoss(loss = FSCORE[0 , 0], epoch = i, total_epochs = len(files))
-        f.write("Run: %d Accuracy: %.2f%% F1-Score: %.2f%% Recall: %.2f%% Precision: %.2f%% Area: %.2f%% File Name: %s\n" % (counter, ACCURACY, FSCORE, RECALL, PRECISION, ALERT_AREA, args.file))
+        f.write("Run: %d Accuracy: %.2f%% F1-Score: %.2f%% Recall: %.2f%% Precision: %.2f%% Area: %.2f%% File Name: %s\n" % (counter, ACCURACY, FSCORE, RECALL, PRECISION, ALERT_AREA, args.file)) 
         f.close()
         print(ACCURACY_)
     else:
         print('Coming up!')
         #histories.sendLoss(loss = 0.0, epoch = i, total_epochs = len(files))
-
     
     if args.save_result_text:
         f = open(args.results_dir + "Results.txt","a")

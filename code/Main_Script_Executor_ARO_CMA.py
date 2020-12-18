@@ -1,7 +1,7 @@
 import os
 import warnings
 
-os.environ["CUDA_VISIBLE_DEVICES"] = "1" 
+# os.environ["CUDA_VISIBLE_DEVICES"] = "1" 
 
 warnings.filterwarnings("ignore")
 Schedule = []
@@ -19,7 +19,7 @@ Schedule.append("python Main_Train_FC114.py --method_type DeepLab --epochs 20 --
                 "--data_type .npy --source_data_t1_year 2016 --source_data_t2_year 2017 --target_data_t1_year 2017 --target_data_t2_year 2018 "
                 "--source_data_t1_name 18_07_2016_image_R232_67_RO --source_data_t2_name 21_07_2017_image_R232_67_RO --target_data_t1_name 18_08_2017_image_R220_63_MA --target_data_t2_name 21_08_2018_image_R220_63_MA "
                 "--source_reference_t1_name PAST_REFERENCE_FOR_2017_EPSG32620_R232_67_RO --source_reference_t2_name REFERENCE_2017_EPSG32620_R232_67_RO --target_reference_t1_name PAST_REFERENCE_FOR_2018_EPSG4674_R220_63_MA --target_reference_t2_name None "
-                "--dataset_main_path /data/lthimoteo/domain-adaptation-cerrado-deforesting/Datasets/")
+                "--dataset_main_path /content/gdrive/My Drive/'Colab Notebooks'/PUC/DLCV/Project/Datasets/")
 
 # Schedule.append("python Main_Test_FC114.py --method_type Unet --batch_size 500 --vertical_blocks 10 "
 #                 "--horizontal_blocks 10 --overlap 0.75 --image_channels 7 --patches_dimension 128 --compute_ndvi False --num_classes 2 "

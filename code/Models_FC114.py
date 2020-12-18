@@ -55,10 +55,12 @@ class Models():
             deeplab_networks = DeepLabV3PlusNetwork(self.args)
 
             #Defining the classifiers
+            is_training = True if self.args.phase else False
             self.logits_c , self.prediction_c, self.features_c = deeplab_networks.build_DeepLab_Arch(
                                                                                 inputs = self.data,
-                                                                                is_training = True, 
-                                                                                output_stride = 16,
+                                                                                is_training = is_training, 
+                                                                                output_stride = self.args.output_stride,
+                                                                                batch_norm_decay = self.args.batch_norm_decay,
                                                                                 base_architecture = 'resnet_v2_50',
                                                                                 name = "DeepLab_Encoder_Classifier")
             if self.args.training_type == 'domain_adaptation':
@@ -600,14 +602,23 @@ class Models():
                     best_f1score = f1_score_vl
                     pat = 0
                     print('[!] Best Validation F1 score: %.2f%%',best_f1score)
-                    print('[!]Saving best model ...')                    
-                    self.save(self.args.save_checkpoint_path, e)                
+
+                    best_model_epoch = e
+                    if self.args.save_intermediate_model:
+                        print('[!]Saving best model ...')
+                        self.save(self.args.save_checkpoint_path, best_model_epoch)                
                 else:
                     pat += 1
                     if pat > self.args.patience:
+                        print("Patience limit reachead. Exiting training...")
                         break
             e += 1
-    
+        print('Training ended')
+        print('[!] Best Validation F1 score: %.2f%%',best_f1score)
+        print('Saving the best model')
+        self.save(self.args.save_checkpoint_path, best_model_epoch)       
+        
+        
     def Test(self): 
         
         #hit_map_ = np.zeros((self.dataset.images_norm[0].shape[0] , self.dataset.images_norm[0].shape[1]))
@@ -657,8 +668,8 @@ class Models():
     def save(self, checkpoint_dir, epoch):
 
         # TODO: Implement if else for saving DeepLab or Unet
-        model_name = "Unet.model"
-
+        model_name = "DeepLab"
+        # Not saving because of google colab
         self.saver.save(self.sess,
                         os.path.join(checkpoint_dir, model_name),
                         global_step=epoch)

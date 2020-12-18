@@ -22,7 +22,7 @@ parser = argparse.ArgumentParser(description='')
 parser.add_argument('--method_type', dest='method_type', type=str, default='Unet', help='method that will be used, could be used also (siamese_network)')
 parser.add_argument('--vertical_blocks', dest='vertical_blocks', type=int, default=10, help='number of blocks which will divide the image vertically')
 parser.add_argument('--horizontal_blocks', dest='horizontal_blocks', type=int, default=10, help='number of blocks which will divide the image horizontally')
-parser.add_argument('--patches_dimension', dest='patches_dimension', type=int, default=29, help= 'dimension of the extracted patches')
+parser.add_argument('--patches_dimension', dest='patches_dimension', type=int, default=128, help= 'dimension of the extracted patches')
 parser.add_argument('--fixed_tiles', dest='fixed_tiles', type=eval, choices=[True, False], default=True, help='decide if tiles will be choosen randomly or not')
 parser.add_argument('--defined_before', dest='defined_before', type=eval, choices=[True, False], default=False, help='decide if tiles will be choosen randomly or not')
 parser.add_argument('--overlap', dest='overlap', type=float, default= 0.75, help= 'stride cadence')
@@ -31,7 +31,7 @@ parser.add_argument('--buffer_dimension_out', dest='buffer_dimension_out', type=
 parser.add_argument('--buffer_dimension_in', dest='buffer_dimension_in', type=int, default=2, help='Dimension of the buffer inside of the area')
 parser.add_argument('--eliminate_regions', dest='eliminate_regions', type=eval, choices=[True, False], default=True, help='Decide if small regions will be taken into account')
 parser.add_argument('--area_avoided', dest='area_avoided', type=int, default=69, help='area threshold that will be avoided')
-parser.add_argument('--compute_ndvi', dest='compute_ndvi', type=eval, choices=[True, False], default=True, help='Cumpute and stack the ndvi index to the rest of bands')
+parser.add_argument('--compute_ndvi', dest='compute_ndvi', type=eval, choices=[True, False], default=False, help='Cumpute and stack the ndvi index to the rest of bands')
 parser.add_argument('--phase', dest='phase', default='compute_metrics', help='train, test, compute_metrics')
 parser.add_argument('--training_type', dest='training_type', type=str, default='classification', help='classification|domain_adaptation')
 parser.add_argument('--save_result_text', dest='save_result_text', type=eval, choices=[True, False], default = True, help='decide if a text file results is saved')
@@ -40,7 +40,7 @@ parser.add_argument('--checkpoint_dir', dest='checkpoint_dir', default='./DA_pro
 #Results dir
 parser.add_argument('--results_dir', dest='results_dir', type=str, default='./results_DA_prove_1/', help='results will be saved here')
 # Images dir and names
-parser.add_argument('--dataset', dest='dataset', type=str, default='Amazonia_Legal/',help='The name of the dataset used')
+parser.add_argument('--dataset', dest='dataset', type=str, default='Amazonia_RO',help='The name of the dataset used')
 parser.add_argument('--images_section', dest='images_section', type=str, default='Organized/Images/', help='Folder for the images')
 parser.add_argument('--reference_section', dest='reference_section', type=str, default='Organized/References/', help='Folder for the reference')
 parser.add_argument('--data_type', dest='data_type', type=str, default='.npy', help= 'Type of the input images and references')
@@ -51,7 +51,7 @@ parser.add_argument('--data_t2_name', dest='data_t2_name', type=str, default='21
 parser.add_argument('--reference_t1_name', dest='reference_t1_name', type=str, default='PAST_REFERENCE_FOR_2017_EPSG32620', help='reference 1 name')
 parser.add_argument('--reference_t2_name', dest='reference_t2_name', type=str, default='REFERENCE_2017_EPSG32620', help='reference 2 name')
 #Dataset Main paths
-parser.add_argument('--dataset_main_path', dest='dataset_main_path', type=str, default='/media/lvc/Dados/PEDROWORK/Trabajo_Domain_Adaptation/Dataset/', help='Dataset main path')
+parser.add_argument('--dataset_main_path', dest='dataset_main_path', type=str, default='/Datasets/', help='Dataset main path')
 
 args = parser.parse_args()
 

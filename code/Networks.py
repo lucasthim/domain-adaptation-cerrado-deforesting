@@ -11,6 +11,20 @@ from tensorflow.contrib.layers.python.layers import layers
 
 from tensorflow.contrib.slim.nets import resnet_v2
 
+#-----para resunet-----
+import os
+import sys
+import random
+
+import numpy as np
+import pandas as pd
+import cv2
+import matplotlib.pyplot as plt
+
+import tensorflow as tf
+from tensorflow import keras
+#--------------------
+
 class Networks():
     def __init__(self, args):
         super(Networks, self).__init__()
@@ -55,7 +69,8 @@ class Networks():
             logits = tf.layers.conv2d(
                 o_me4, self.args.num_classes, 1, 1, 'SAME', activation=None)
             prediction = tf.nn.softmax(logits, name=name + '_softmax')
-
+            
+            #RETURN DO BOTTLENECK MODIFICADO: ORIGINAL ERA O_C5
             return logits, prediction, o_c5
 
     def build_Unet_Decoder_Arch(self, input_data, name="Unet_Decoder_Arch"):
@@ -78,6 +93,26 @@ class Networks():
             prediction = tf.nn.softmax(logits, name=name + '_softmax')
 
             return logits, prediction
+    
+    
+    #=============================GABRIEL: DOMAIN_CLASSIFIER=============================
+    def build_Domain_Classifier_Arch(self, input_data, name="Domain_Classifier_Arch"):
+        with tf.variable_scope(name):
+            #Domain Classifier Definition: 2x (Fully_Connected_1024_units + ReLu) + Fully_Connected_1_unit + Logistic
+            
+            o_flatten = tf.layers.flatten(input_data)
+            
+            o_dense1 = self.general_dense(o_flatten, units=1024, activation_function="relu", name=name + '_dense1')
+            o_dense2 = self.general_dense(o_dense1, units=1024, activation_function="relu", name=name + '_dense2')
+            
+            #SERÁ AQUI O ERRO??? ACTIVATION NONE NA VERDADE USA UMA ATIVAÇÃO LINEAR
+            logits = tf.layers.dense(o_dense2, units=self.args.num_classes, activation=None)
+            
+            #ALÉM DISSO, AQUI EU USO UMA SOFTMAX, MAS EM MODELS, OUTRA SOFTMAX É USADA EM CIMA DESSE LOGITS (essa saída não é usada em models)
+            prediction = tf.nn.softmax(logits, name=name + '_softmax')
+            
+            return logits, prediction
+    #=============================GABRIEL: DOMAIN_CLASSIFIER=============================        
 
     def general_conv2d(self, input_data, filters=64,  kernel_size=7, stride=1, stddev=0.02, activation_function="relu", padding="VALID", do_norm=True, relu_factor=0, name="conv2d"):
         with tf.variable_scope(name):
@@ -112,6 +147,121 @@ class Networks():
                 deconv = tf.nn.elu(deconv, name='elu')
 
             return deconv
+    
+    #==========================================================GABRIEL: DOMAIN_CLASSIFIER==========================================================
+    #GABRIEL: GENERAL DENSE
+    #Alterado de activation -> activation_function, para manter o padrão
+    def general_dense(self, input_data, units=1024, activation_function="relu", use_bias=True, kernel_initializer=None,
+                      bias_initializer=tf.zeros_initializer(), kernel_regularizer=None,bias_regularizer=None, activity_regularizer=None,
+                      kernel_constraint=None, bias_constraint=None, trainable=True, name='dense'):
+        
+        with tf.variable_scope(name):
+            dense = tf.layers.dense(input_data, units, activation=None)
+            
+#            NÃO SEI SE É NECESSÁRIO COLOCAR O BATCH_NORM
+#            if do_norm:
+#                dense = tf.layers.batch_normalization(dense, momentum=0.9)
+            
+            if activation_function == "relu":
+                dense = tf.nn.relu(dense, name='relu')
+            if activation_function == "leakyrelu":
+                dense = tf.nn.leaky_relu(dense, alpha=relu_factor)
+            if activation_function == "elu":
+                dense = tf.nn.elu(dense, name='elu')
+                
+            return dense
+    #==========================================================GABRIEL: DOMAIN_CLASSIFIER==========================================================
+
+    #==========================================================GABRIEL: RESUNET==========================================================
+    def bn_act(self, x, act=True, axis=-1, bnEps=2e-5, bnMom=0.9, name='bn_act'):
+        x = tf.layers.batch_normalization(x, axis=axis, epsilon=bnEps, momentum=bnMom)#, name = 'batch_norm')
+        if act == True:
+          x = tf.nn.relu(x, name='relu')
+        return x
+
+    def conv_block(self, x, filters, kernel_size=(3, 3), padding="same", strides=1):
+        conv = self.bn_act(x)
+        conv = keras.layers.Conv2D(filters, kernel_size, padding=padding, strides=strides)(conv)
+        return conv
+
+    def stem(self, x, filters, kernel_size=(3, 3), padding="same", strides=1):
+        conv = keras.layers.Conv2D(filters, kernel_size, padding=padding, strides=strides)(x)
+        conv = self.conv_block(conv, filters, kernel_size=kernel_size, padding=padding, strides=strides)
+        
+        shortcut = keras.layers.Conv2D(filters, kernel_size=(1, 1), padding=padding, strides=strides)(x)
+        shortcut = self.bn_act(shortcut, act=False)
+        
+        output = keras.layers.Add()([conv, shortcut])
+        return output
+
+    def residual_block(self, x, filters, kernel_size=(3, 3), padding="same", strides=1):
+        res = self.conv_block(x, filters, kernel_size=kernel_size, padding=padding, strides=strides)
+        res = self.conv_block(res, filters, kernel_size=kernel_size, padding=padding, strides=1)
+        
+        shortcut = keras.layers.Conv2D(filters, kernel_size=(1, 1), padding=padding, strides=strides)(x)
+        shortcut = self.bn_act(shortcut, act=False)
+        
+        output = keras.layers.Add()([shortcut, res])
+        return output
+
+    def upsample_concat_block(self, x, xskip):
+        u = keras.layers.UpSampling2D((2, 2))(x)
+        c = keras.layers.Concatenate()([u, xskip])
+        return c
+
+    def build_resunet(self, inputs, name="ResUNet"):
+        print('-------------------------------------')
+        print('Initializing ResUNet "build" Architecture')
+        print('-------------------------------------')
+        print('Input data shape:', inputs.shape)
+
+        f = [16, 32, 64, 128, 256]
+        #inputs = keras.layers.Input((image_size, image_size, 3))
+        #inputs = keras.layers.Input((inputs.shape[1:]), batch_size=inputs.shape[0])
+        
+        ## Encoder
+        e0 = inputs
+        e1 = self.stem(e0, f[0])
+        e2 = self.residual_block(e1, f[1], strides=2)
+        e3 = self.residual_block(e2, f[2], strides=2)
+        e4 = self.residual_block(e3, f[3], strides=2)
+        e5 = self.residual_block(e4, f[4], strides=2)
+        
+        ## Bridge
+        b0 = self.conv_block(e5, f[4], strides=1)
+        b1 = self.conv_block(b0, f[4], strides=1)
+        
+        ## Decoder
+        u1 = self.upsample_concat_block(b1, e4)
+        d1 = self.residual_block(u1, f[4])
+        
+        u2 = self.upsample_concat_block(d1, e3)
+        d2 = self.residual_block(u2, f[3])
+        
+        u3 = self.upsample_concat_block(d2, e2)
+        d3 = self.residual_block(u3, f[2])
+        
+        u4 = self.upsample_concat_block(d3, e1)
+        d4 = self.residual_block(u4, f[1])
+        
+        logits = keras.layers.Conv2D(self.args.num_classes, (1, 1), padding="same", activation=None)(d4)
+        prediction = keras.layers.Softmax()(logits)
+        return logits, prediction, b1
+    #==========================================================GABRIEL: RESUNET==========================================================
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 class DeepLabV3PlusNetwork(Networks):
 

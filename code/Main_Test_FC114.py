@@ -20,23 +20,26 @@ from Cerrado_Biome_MA import CERRADO_MA
 parser = argparse.ArgumentParser(description='')
 #Defining the meta-paramerts
 # Model
-parser.add_argument('--method_type', dest='method_type', type=str, default='Unet', help='method that will be used, could be used also (siamese_network)')
+parser.add_argument('--method_type', dest='method_type', type=str, default='DeepLab', help='method that will be used, could be used also (siamese_network)')
+parser.add_argument('--output_stride', dest='output_stride', type=int, default=8, help='Determines the rates for atrous convolution. The rates are (6, 12, 18) when the stride is 16, and doubled when 8')
+parser.add_argument('--batch_norm_decay', dest='batch_norm_decay', type=float, default=0.9997, help='moving average decay when estimating layer activation statistics in batch normalization')
+
 # Testing parameters
-parser.add_argument('--batch_size', dest='batch_size', type=int, default=4000, help='number images in batch')
+parser.add_argument('--batch_size', dest='batch_size', type=int, default=32, help='number images in batch')
 parser.add_argument('--vertical_blocks', dest='vertical_blocks', type=int, default=10, help='number of blocks which will divide the image vertically')
 parser.add_argument('--horizontal_blocks', dest='horizontal_blocks', type=int, default=10, help='number of blocks which will divide the image horizontally')
 parser.add_argument('--overlap', dest='overlap', type=float, default= 0.75, help= 'stride cadence')
 parser.add_argument('--image_channels', dest='image_channels', type=int, default=7, help='number of image channels')
-parser.add_argument('--patches_dimension', dest='patches_dimension', type=int, default=64, help= 'dimension of the extracted patches')
-parser.add_argument('--compute_ndvi', dest='compute_ndvi', type=eval, choices=[True, False], default=True, help='Cumpute and stack the ndvi index to the rest of bands')
+parser.add_argument('--patches_dimension', dest='patches_dimension', type=int, default=128, help= 'dimension of the extracted patches')
+parser.add_argument('--compute_ndvi', dest='compute_ndvi', type=eval, choices=[True, False], default=False, help='Cumpute and stack the ndvi index to the rest of bands')
 parser.add_argument('--buffer', dest='buffer', type=eval, choices=[True, False], default=False, help='Decide wether a buffer around deforestated regions will be performed')
 parser.add_argument('--num_classes', dest='num_classes', type=int, default=2, help='Number of classes comprised in both domains')
 # Phase
 parser.add_argument('--phase', dest='phase', default='test', help='train, test, generate_image, create_dataset')
 parser.add_argument('--training_type', dest='training_type', type=str, default='classification', help='classification|domain_adaptation')
 #Checkpoint dir
-parser.add_argument('--checkpoint_dir', dest='checkpoint_dir', default='./DA_prove', help='Domain adaptation checkpoints')
-parser.add_argument('--results_dir', dest='results_dir', type=str, default='./results_DA_prove', help='results will be saved here')
+parser.add_argument('--checkpoint_dir', dest='checkpoint_dir', default='./checkpoints/prove', help='Domain adaptation checkpoints')
+parser.add_argument('--results_dir', dest='results_dir', type=str, default='./checkpoints/results', help='results will be saved here')
 # Images dir and names
 # Images dir and names
 parser.add_argument('--dataset', dest='dataset', type=str, default='Amazonia_Legal/',help='The name of the dataset used')
@@ -45,12 +48,13 @@ parser.add_argument('--reference_section', dest='reference_section', type=str, d
 parser.add_argument('--data_type', dest='data_type', type=str, default='.npy', help= 'Type of the input images and references')
 parser.add_argument('--data_t1_year', dest='data_t1_year', type=str, default='2016', help='Year of the time 1 image')
 parser.add_argument('--data_t2_year', dest='data_t2_year', type=str, default='2017', help='Year of the time 2 image')
-parser.add_argument('--data_t1_name', dest='data_t1_name', type=str, default='18_07_2016_image', help='image 1 name')
-parser.add_argument('--data_t2_name', dest='data_t2_name', type=str, default='21_07_2017_image', help='image 2 name')
-parser.add_argument('--reference_t1_name', dest='reference_t1_name', type=str, default='PAST_REFERENCE_FOR_2017_EPSG32620', help='reference 1 name')
-parser.add_argument('--reference_t2_name', dest='reference_t2_name', type=str, default='REFERENCE_2017_EPSG32620', help='reference 2 name')
+parser.add_argument('--data_t1_name', dest='data_t1_name', type=str, default='18_07_2016_image_R232_67_RO', help='image 1 name')
+parser.add_argument('--data_t2_name', dest='data_t2_name', type=str, default='21_07_2017_image_R232_67_RO', help='image 2 name')
+# Default reference for Amazon
+parser.add_argument('--reference_t1_name', dest='reference_t1_name', type=str, default='PAST_REFERENCE_FOR_2017_EPSG32620_R232_67_RO', help='reference 1 name')
+parser.add_argument('--reference_t2_name', dest='reference_t2_name', type=str, default='REFERENCE_2017_EPSG32620_R232_67_RO', help='reference 2 name')
 #Dataset Main paths
-parser.add_argument('--dataset_main_path', dest='dataset_main_path', type=str, default='/media/lvc/Dados/PEDROWORK/Trabajo_Domain_Adaptation/Dataset/', help='Dataset main path')
+parser.add_argument('--dataset_main_path', dest='dataset_main_path', type=str, default='/Datasets/', help='Dataset main path')
 #Architecture configuration
 #parser.add_argument('--FE_Architecture', dest='FE_Architecture', type=str, default='', help='Decide the architecture of the Feature Extractor(FE)')
 #parser.add_argument('--CL_Architecture', dest='CL_Architecture', type=str, default='', help='Decide the architecture of the Classifier(Cl)')
@@ -110,6 +114,7 @@ def main():
             
             model.Test()
             #histories.sendLoss(loss = 0.0, epoch = i, total_epochs = len(checkpoint_files))
+
 
 if __name__=='__main__':
     main()

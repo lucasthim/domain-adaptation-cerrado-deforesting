@@ -1,4 +1,0 @@
-0 [Training loss: 0.040675, acc.: 23.94%, precission: 4.14%, recall: 69.53%, f1: 7.77%]
-0 [Validation loss: 0.034366, acc.: 14.35%, precission: 3.68%, recall: 86.18%, f1: 7.05%]
-1 [Training loss: 0.038535, acc.: 9.36%, precission: 4.79%, recall: 93.80%, f1: 9.09%]
-1 [Validation loss: 0.032787, acc.: 6.40%, precission: 3.84%, recall: 97.80%, f1: 7.37%]
