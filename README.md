@@ -1,10 +1,9 @@
-# Domain Adaptation for Identifying Cerrado Deforesting
+# Domain Adaptation for Change Detection for Deforestation Detection on Amazon and Cerrado
 
 ELE2006 final project
 
-Main objective: Create a DNN architecture to execute a domain adaptation from Amazon deforesting images in order to identify Cerrado deforesting
- 
+Main objective: Create a deep architecture to execute a domain adaptation using unlabeled samples from a target domain in order to assess change detection for deforestation detection on Amazon and Cerrado biomes.
+
  Specific Objectives: 
- - Adapt the DeepLab V3+ Architecture with a GAN like Discriminator in its bottle neck
- - Apply a Change Vector Analysis to select images with deforesting scenes.
- - Compare results with baseline (lb and ub)
+ - Adapt the DeepLab V3+ Architecture with the Unsupervised Domain Adaptation by Backpropagation (https://arxiv.org/pdf/1409.7495.pdf)
+ - Compare results with baseline (lower bound and upper bound)
